@@ -1,0 +1,116 @@
+---
+title: "EDA"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(tidymodels)
+library(gt)
+```
+
+# Introdution
+
+Stated as an obvious fact, water is critical to survival for humans. Access to clean drinking water is an enabler to having a healthy life, and without access to water, life becomes much harder.
+
+In recent years, we have seen phenomena, both natural and man-made, impact the availability to clean drinking water. Causes like droughts, fracking, and even AI data centers have impacted both the quality and availability of clean drinking water. In situations where the supply of clean water is limited or the quality of drinking water is in question, it is critically important to be able to quickly determine if a source of water is drinkable.
+
+"Water Potability" is an indicator that determines if water is safe to drink. Potability is measured by a series of tests, such as bacteria samples, chemical composition tests, and physical measurements. If the measurements are below a certain threshold (usually set by a regulatory authority), the water is considered potable.
+
+However, not everyone has the access to the equipment or procedures required to run through a water potability test. Similarly, regulatory authorities cannot conduct potability tests everywhere and all the time. This report will detail an alternative, where predictive modeling is used to predict water potability.
+
+The goal of this report is to train a classification model that can classify water potability with a high degree of certainty. A Kaggle dataset with observations consistenting of many measurements taken on a sample of water and the water's potability will be used to train and evaluate the model
+
+The following variables will be used in the model development in this report:
+
+-   pH: A measure of acidify. pH is measured on a scale from 0 (extremely acidic) to 14 (extremely basic), with 7 being a neutral pH
+
+-   Hardness: A measure of the quantity of minerals dissolved within water, normally measured in milligrams per liter
+
+-   Total Dissolved Solids (TDS): TDS is a measure of the total amount of material that is dissolved in water, measured in parts per million (ppm)
+
+-   Chloramines: Chloramines are found in water when chlorine and ammonia are used to disinfect water. Chloramines are measures in parts per million
+
+-   Sulfate: Sulfates are naturally occuring in all waters. We look to find sulfate levels (ppm) that match that of fresh water
+
+-   Conductivity: Conductivity, measured in microsiemens per centimeter, measures a substance's ability to conduct an electric current. Low levels of conductivity indicate that there are a small amount of ions (dissolved salts) in solution, which can be used to predict water purity
+
+-   Total Organic Carton (TOC): TOC is a measure of the amount of organic carbon compound in water. TOC is another indicator of water purity
+
+-   Trihalomethanes (THMs): THMs (measured in ppm) are chemicals that are found when water is treated with chlorine.
+
+-   Turbidyity: Turbidity (measured with the Nephelometric Turbidity Unit (NTU)), describes the quantity of suspended particles within a solution. Clean water tends to have a smaller turbidity than contaminated water.
+
+-   Potability: Potability (True, Potable or False, Not Potable) is a binary indicator of the water's ability to be consumed safely.
+
+# Exploratory Data Analysis (EDA):
+
+The following section will overview the exploratory data analysis performed to understand the provided data set and prepare for modeling:
+
+## Read in Data:
+
+```{r}
+potabilityDf = read.csv("water_potability.csv",
+                        col.names = c("ph",
+                                      "hardness",
+                                      "solids",
+                                      "chloramines",
+                                      "sulfate",
+                                      "conductivity",
+                                      "organicCarbon",
+                                      "thm",
+                                      "tubidity",
+                                      "potability"
+                                      
+                                      
+                                      ))
+
+head(potabilityDf)
+```
+
+## Assiged Correct Variable Types:
+
+The *potability* variable should be a factor. All other variables are acceptable as numeric
+
+```{r}
+
+potabilityDf = potabilityDf |> mutate(potability = as.factor(potability))
+
+head(potabilityDf)
+
+```
+
+## Assess Missingness:
+
+### Missingness Per Variable
+
+First, we will define a helper function to calculate the proportion of missing values for a column, then we will apply the function to the data set
+
+```{r}
+
+propMissing = function(col){
+  return(sum(is.na(col)) / length(col))
+}
+
+missingness = potabilityDf |> apply(MARGIN = 2, propMissing)
+
+missingness = data.frame(Variable = names(missingness), Missingness = missingness)
+
+head(missingness)
+
+missingness |> gt() |> tab_header(title = "Missingness Proportion by Variable")
+
+
+```
+
+### Missingness for Entire Dataset
+
+```{r}
+
+print(paste0("Proportion Missing (Entire Dataset) ",round(sum(is.na(potabilityDf)) / length(potabilityDf$ph),2)))
+
+
+```
+
+pH and sulfate are missing in 14% and 23% of water samples, respectively, while 44% of entries in the data set contain at least one missing row. In an attempt to not throw out data, we can either drop the pH and sulfate columns, or impute all missing values with the column mean.

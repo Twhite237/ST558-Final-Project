@@ -8,6 +8,8 @@ library(tidyverse)
 library(ggplot2)
 library(tidymodels)
 library(gt)
+library(ggpubr)
+library(corrplot)
 ```
 
 # Introdution
@@ -108,9 +110,97 @@ missingness |> gt() |> tab_header(title = "Missingness Proportion by Variable")
 
 ```{r}
 
-print(paste0("Proportion Missing (Entire Dataset) ",round(sum(is.na(potabilityDf)) / length(potabilityDf$ph),2)))
+missingInRow = apply(potabilityDf, 1, anyNA)
+
+propMissingRow = sum(missingInRow) / length(missingInRow)
+
+print(paste0("Proportion Missing Rows: ", propMissingRow ))
+print(paste0("Number of Oberservations Thrown Out: ", length(missingInRow)*propMissingRow))
+
+```
+
+pH and sulfate are missing in 14% and 23% of water samples, respectively, while 39% of entries in the data set contain at least one missing row. In an attempt to not throw out data, we can either drop the pH and sulfate columns, impute all missing values with the column mean, or drop any rows with any missing data. In the context of this problem, any gained accuracy in the model that could be attributed to imputed values in the training set could be the difference between classifying a water sample between potable and non-potable. For this reason, I will chose to throw out any observations with missing data. This will allow us to use all predictors in modeling, while also not having to impute any data.
+
+### Clean Data Set to Remove Rows with Missing Values
+
+```{r}
+## Convert to a tibble for better printing and manipulation later
+potabilityDf = as_tibble(drop_na(potabilityDf))
+
+print(potabilityDf)
 
 
 ```
 
-pH and sulfate are missing in 14% and 23% of water samples, respectively, while 44% of entries in the data set contain at least one missing row. In an attempt to not throw out data, we can either drop the pH and sulfate columns, or impute all missing values with the column mean.
+### Numeric Variable Summaries:
+
+Next, we will generate summary statistics for each numeric variable. I since we are trying to determine what variables might indicate water potability, I will group by the potability response variable
+
+```{r}
+
+potabilityDf |> group_by(potability) |>summarize(across(where(is.numeric), 
+                   list("mean" = mean, "std_dev" = sd), 
+                   .names = "{.fn}_{.col}"))|> gt() |>
+  tab_header(title = "Missingness Proportion by Variable")
+```
+
+### Violin Plots for Numeric Variables
+
+I will create a side by side violin / box plot for each numeric variable at each level of the response.
+
+```{r}
+
+numericVars = names(potabilityDf |> select(where(is.numeric)))
+
+
+
+#ggviolin(potabilityDf, x = "potability", y = "ph", fill = "potability",
+         #palette = c("#00AFBB" , "#FC4E07"),
+         #add = "boxplot", add.params = list(fill = "white"))
+
+
+for (var in 1:length(numericVars)){
+  print(ggviolin(potabilityDf, x = "potability", y = numericVars[var], fill = "potability",
+         palette = c("#00AFBB" , "#FC4E07"),
+         add = "boxplot", add.params = list(fill = "white")))
+}
+```
+
+Observations:
+
+-   Means for each numeric variable at each level of potability seem consistent
+
+-   I noticed a few "happy medium" variables, where potable water is found within a tight range of the numeric variable, these variable were "pH" and "sulfate"
+
+### Correlation Plot:
+
+Next, we will generate a correlation plot. We are looking for uncorrelated variables, which will ensure we don't have multidisciplinary, which will negatively impact our ability to estimate model parameters and variabce
+
+```{r}
+corrplot(cor(potabilityDf |> select(where(is.numeric))))
+```
+
+There is very little correlation between any of the numeric variables, we should be good to go.
+
+## Potable vs Non-Potable:
+
+We should look at the distribution of the response variable to determine if we should make any decisions about splitting the data:
+
+```{r}
+g = ggplot(data = potabilityDf, aes(x = potability))
+
+g + geom_bar()
+```
+
+The water samples have a somewhat even spread across both levels of potability. We will not need to make any special considerations when doing our train / test split to make sure a certain class makes it into each set.
+
+### No Information Rate (NIR)
+
+No Information Rate, which is just the proportion of the most prevalent response class, is the baseline that we will judge our models against for accuracy. We will look to use the predictor variables to significantly improve on prediction accuracy compared to the NIR.
+
+```{r}
+
+paste0("No Information Rate: ", 1- sum(ifelse(potabilityDf$potability == "0", 0, 1))/length(potabilityDf$potability))
+```
+
+We should look to do a lot better than the NIR of

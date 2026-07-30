@@ -203,4 +203,4 @@ No Information Rate, which is just the proportion of the most prevalent response
 paste0("No Information Rate: ", 1- sum(ifelse(potabilityDf$potability == "0", 0, 1))/length(potabilityDf$potability))
 ```
 
-We should look to do a lot better than the NIR of
+We should look to do a lot better than the NIR of 60%

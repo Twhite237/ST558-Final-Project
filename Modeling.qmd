@@ -90,12 +90,13 @@ Next, we will create a pre-processing recipe that will be used for each candidat
 
 ```{r}
 
+## Note - have to convert potability to a factor outside of the recipe. This is because when we predict, we don't have access to the response, so any transformatiions to the response have to happen outside of the recipe
+
+potabilityDf = potabilityDf |> mutate(potability = as.factor(ifelse(potability == 0, FALSE, TRUE)))
+
 preProcessingRecipe = recipe(potability ~ ., data = potabilityDf) |>
   step_naomit() |>
-  step_num2factor(potability, 
-                  transform = function(x) x + 1,
-                  levels = c("False","True")) |>
-  step_normalize(all_numeric())
+  step_normalize(all_numeric_predictors())
   
 ```
 
@@ -167,7 +168,179 @@ tuneGrid <- grid_regular(cost_complexity(),
 
 treeFitCV = treeWorkflow |>
   tune_grid(resamples = potabilityFolds,
+            metrics = metric_set(mn_log_loss),
             grid = tuneGrid)
 
-treeFitCV
+
+```
+
+The results of this fit are 5 model fits for each of the 100 values of the cost complexity tuning parameter. We can run `collect_metrics()` to average the log-loss for all 5 CV fits across each value of tuning parameter. From there, we can chose the value of cost complexity that yields the best model.
+
+```{r}
+cvMetrics = treeFitCV |> collect_metrics()
+
+head(cvMetrics)
+
+```
+
+Let's plot the log-loss at each level of cost complexity to see how the model performs as cost complexity changes:
+
+```{r}
+g = ggplot(data = cvMetrics, aes(x = cost_complexity, y = mean)) 
+
+
+g + geom_line() + labs(x = "Cost Complexity", y = "Log-Loss")
+```
+
+The models seems to to the best when cost complexity is set to around 0.025. Let's see what the actual best fit is.
+
+```{r}
+
+bestTree = select_best(treeFitCV, metric = "mn_log_loss")
+
+bestTree
+```
+
+We were right! The best tree happened with a cost complexity of 0.0284. Let's save this model for future reference to test on the test set:
+
+```{r}
+
+treeFinalWorkflow = treeWorkflow |> finalize_workflow(bestTree)
+```
+
+Next we will repeat for the Random Forest Model.
+
+### Random Forest Model
+
+#### What is a Random Forest Model?
+
+On a high level, a random forest model is very similar to a regression tree, but it has two main differences, which we will explain in more detail:
+
+-   Random forest models are an "ensemble model", which means that predictions / classifications come from the mean / majority vote from many models. In a random forest model, this is done with what is called a "bagged tree"
+
+-   Random forest models are trained very similar to tree-based models, except for they add an element of randomness, hence the name. The randomness comes from a random selection of predictors that are included at each split of the tree. The random selection will prevent any few variables from overpowering the model, which should help the model generalize to new data.
+
+We will discuss both of these concepts to build an understanding of the random forest model
+
+#### Ensemble and Bagged Tree Models:
+
+As mentioned above, an "ensemble" model is one that used many different child models to make a prediction / classification. However, if we are using the same model and training for each child model, we aren't really getting anywhere, as each fit will be the same. We will not be enjoying the generalization that ensemble models claim to bring! So, we need a way to introduce some variability somehow to train each child model differently to create some diversity in model predictions. We do this with a process called "bagging", short for bootstrap aggregation. We follow this process to train and evaluate predictive models with bagging:
+
+1.  Take "B" bootstrap samples (sample with size *n*, with replacement)
+2.  For each of the "B" bootstrap samples:
+    1.  Train a tree model
+    2.  Use the samples from the test set that we did not select ("out-of-bag" samples) as a mini-test set to generate a model metric
+3.  To make predictions / classifications, generate a prediction on each of the "B" bootstrap samples and use the mean / majority vote to predict / classify the response
+4.  To evaluate the bagged tree against other candidate model, use the average of the "B" model metrics as our bagged tree model metric
+
+#### Introducing Randomness into the Bagged Tree Model:
+
+In the description of the bagged tree, we explored the idea of wanting some variation in each of the child models. This is a bit of a counterintuitive idea, because some child models will perform quite well on the training set and others may not, but all count the same towards the final prediction. However, we want this model to generalize well to data it hasn't seen before, so introducing some randomness into the model training should help us generalize to new data, since the new data might be pretty different than our training set. If we introduce some randomness along the way, we have a better chance of generalizing well.
+
+The same idea extends to the random forest model. A random forest model is a special case of a bagged tree, but we add another element of randomness by selecting a random subset of predictors to use at each split. Recall from the description of the regression tree, at each split we look for the optimal split. across all predictors. In the random forest model we limit ourselves to a random selection of predictors. In the same way that the bagged tree uses the bootstrap in an attempt to generalize well to unseen data, the random forest model does the same with the restricted selection of predictors at each step. The number of parameters to select at each step is a tuning parameter that we can use to select the optimal random forest model.
+
+### How to Tune a Random Forest:
+
+The random forest model is an extension of a tree-based models, so the same tuning parameters, maximum tree depth, minimum observations in a terminal node, and cost complexity for pruning, are still in play. The random forest introduces two additional tuning parameters:
+
+-   Number of Trees to Fit: This is controlling how many bootstrap samples to take
+
+-   Number of Predictors at Each Split: We can chose a number of predictors to randomly select at each split that is less than or equal to the number of predictors in the training set
+
+### Implementing the Random Forest Model:
+
+We will create a similar workflow to the regression tree to tune an optimal random forest model. We will only tune on the number of parameters at each split. We have 9 predictors, so we will tune on random selection from 1-9 variables. Similar to the regression tree, we will allow the minimum observations in a terminal node for each tree to be 25.
+
+```{r}
+
+# specify random forest model:
+
+rfModel = rand_forest(mtry = tune(), min_n = 25) |>
+  set_engine("ranger") |>
+  set_mode("classification")
+
+## Create workflow use the same recipe as the regression tree
+
+rfWorkflow = workflow() |>
+  add_recipe(preProcessingRecipe) |>
+  add_model(rfModel)
+  
+
+```
+
+Now we will use cross-validation to determine how the model does at each level of `mtry` which is the number of predictors to randomly include at each step
+
+```{r}
+rfFit = rfWorkflow |>
+  tune_grid(resamples = potabilityFolds,
+            grid = 9,
+            metrics = metric_set(mn_log_loss))
+```
+
+```{r}
+
+rfMetrics = rfFit |> collect_metrics()
+
+head(rfMetrics)
+
+
+```
+
+Let's see how the model performs at different values of "mtry"
+
+```{r}
+g = ggplot(data = rfMetrics, aes(x = mtry, y = mean)) 
+
+
+g + geom_line() + labs(x = "Number of Random Predictors", y = "Log-Loss")
+```
+
+It looks like the model did the best with 7 predictors. Let's verify
+
+```{r}
+
+bestRf = select_best(rfFit, metric = "mn_log_loss")
+
+bestRf
+```
+
+We are correct again! Now let's use this best tree model to get a final model
+
+```{r}
+
+rfFinalWorkflow = rfWorkflow |> finalize_workflow(bestRf)
+```
+
+## Final Model Evaluation
+
+Now that we have tuned both the regression tree and random forest, we will evaluate both models on the test set to declare a best model:
+
+```{r}
+
+treeFinalFit = treeFinalWorkflow |> last_fit(potabilitySplit, 
+                                             metrics = metric_set(mn_log_loss)) |> collect_metrics()
+
+rfFinalFit = rfFinalWorkflow |> last_fit(potabilitySplit, 
+                                             metrics = metric_set(mn_log_loss)) |> collect_metrics()
+
+
+comps = rbind(treeFinalFit, rfFinalFit) |> mutate(type = NA)
+
+comps$type[1] = "Regression Tree"
+comps$type[2] = "Random Forest"
+
+comps |> select(type, .metric, .estimate)
+```
+
+The random forest model performed best! That is our best model!
+
+## Fit the Random Forest Model on the Entire Data Set and Make a Prediction
+
+```{r}
+
+finalFit = rfFinalWorkflow |> fit(potabilityDf)
+
+newData = potabilityDf[4, ]
+
+predict(finalFit, new_data = newData)
 ```

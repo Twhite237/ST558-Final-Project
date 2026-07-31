@@ -12,7 +12,7 @@ library(ggpubr)
 library(corrplot)
 ```
 
-# Introdution
+# Introduction
 
 Stated as an obvious fact, water is critical to survival for humans. Access to clean drinking water is an enabler to having a healthy life, and without access to water, life becomes much harder.
 

@@ -207,4 +207,4 @@ We should look to do a lot better than the NIR of 60%
 
 ## Next Up: Modeling:
 
-[Select link to go to the modeling notebook](docs/Modeling.html)
+[Select link to go to the modeling notebook](modeling.qmd)

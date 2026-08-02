@@ -334,12 +334,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 6 × 7
   cost_complexity .metric     .estimator  mean     n std_err .config          
             &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;            
-1        1   e-10 mn_log_loss binary      1.24     5   0.160 pre0_mod001_post0
-2        1.23e-10 mn_log_loss binary      1.24     5   0.160 pre0_mod002_post0
-3        1.52e-10 mn_log_loss binary      1.24     5   0.160 pre0_mod003_post0
-4        1.87e-10 mn_log_loss binary      1.24     5   0.160 pre0_mod004_post0
-5        2.31e-10 mn_log_loss binary      1.24     5   0.160 pre0_mod005_post0
-6        2.85e-10 mn_log_loss binary      1.24     5   0.160 pre0_mod006_post0</code></pre>
+1        1   e-10 mn_log_loss binary      1.21     5  0.0603 pre0_mod001_post0
+2        1.23e-10 mn_log_loss binary      1.21     5  0.0603 pre0_mod002_post0
+3        1.52e-10 mn_log_loss binary      1.21     5  0.0603 pre0_mod003_post0
+4        1.87e-10 mn_log_loss binary      1.21     5  0.0603 pre0_mod004_post0
+5        2.31e-10 mn_log_loss binary      1.21     5  0.0603 pre0_mod005_post0
+6        2.85e-10 mn_log_loss binary      1.21     5  0.0603 pre0_mod006_post0</code></pre>
 </div>
 </div>
 <p>Let’s plot the log-loss at each level of cost complexity to see how the model performs as cost complexity changes:</p>
@@ -447,12 +447,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 6 × 7
    mtry .metric     .estimator  mean     n std_err .config        
   &lt;int&gt; &lt;chr&gt;       &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;          
-1     1 mn_log_loss binary     0.637     5 0.00573 pre0_mod1_post0
-2     2 mn_log_loss binary     0.625     5 0.00620 pre0_mod2_post0
-3     3 mn_log_loss binary     0.619     5 0.00586 pre0_mod3_post0
-4     4 mn_log_loss binary     0.615     5 0.00665 pre0_mod4_post0
-5     5 mn_log_loss binary     0.613     5 0.00708 pre0_mod5_post0
-6     6 mn_log_loss binary     0.611     5 0.00738 pre0_mod6_post0</code></pre>
+1     1 mn_log_loss binary     0.645     5 0.00448 pre0_mod1_post0
+2     2 mn_log_loss binary     0.637     5 0.00584 pre0_mod2_post0
+3     3 mn_log_loss binary     0.633     5 0.00610 pre0_mod3_post0
+4     4 mn_log_loss binary     0.630     5 0.00617 pre0_mod4_post0
+5     5 mn_log_loss binary     0.630     5 0.00574 pre0_mod5_post0
+6     6 mn_log_loss binary     0.631     5 0.00595 pre0_mod6_post0</code></pre>
 </div>
 </div>
 <p>Let’s see how the model performs at different values of “mtry”</p>
@@ -478,7 +478,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 1 × 2
    mtry .config        
   &lt;int&gt; &lt;chr&gt;          
-1     7 pre0_mod7_post0</code></pre>
+1     4 pre0_mod4_post0</code></pre>
 </div>
 </div>
 <p>We are correct again! Now let’s use this best tree model to get a final model</p>
@@ -508,8 +508,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 2 × 3
   type            .metric     .estimate
   &lt;chr&gt;           &lt;chr&gt;           &lt;dbl&gt;
-1 Regression Tree mn_log_loss     0.651
-2 Random Forest   mn_log_loss     0.615</code></pre>
+1 Regression Tree mn_log_loss     0.654
+2 Random Forest   mn_log_loss     0.601</code></pre>
 </div>
 </div>
 <p>The random forest model performed best! That is our best model!</p>

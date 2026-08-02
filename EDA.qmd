@@ -205,6 +205,6 @@ paste0("No Information Rate: ", 1- sum(ifelse(potabilityDf$potability == "0", 0,
 
 We should look to do a lot better than the NIR of 60%
 
-## Next Up: Modeling:
+## Next Up: Modeling
 
 [Select link to go to the modeling notebook](Modeling.html)

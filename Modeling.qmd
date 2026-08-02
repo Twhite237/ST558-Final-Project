@@ -76,8 +76,6 @@ potabilityDf = read.csv("water_potability.csv",
                                       "thm",
                                       "tubidity",
                                       "potability"
-                                      
-                                      
                                       ))
 
 
@@ -143,6 +141,7 @@ We will create a workflow that leverages the pre-processing tree and trains the 
 ```{r}
 
 ## Specify tree based model
+set.seed(237)
 
 treeModel = decision_tree(min_n = 25,
                           cost_complexity = tune()) |>
@@ -235,7 +234,7 @@ As mentioned above, an "ensemble" model is one that used many different child mo
 
 #### Introducing Randomness into the Bagged Tree Model:
 
-In the description of the bagged tree, we explored the idea of wanting some variation in each of the child models. This is a bit of a counterintuitive idea, because some child models will perform quite well on the training set and others may not, but all count the same towards the final prediction. However, we want this model to generalize well to data it hasn't seen before, so introducing some randomness into the model training should help us generalize to new data, since the new data might be pretty different than our training set. If we introduce some randomness along the way, we have a better chance of generalizing well.
+In the description of the bagged tree, we explored the idea of wanting some variation in each of the child models. This is a bit of a counter-intuitive idea, because some child models will perform quite well on the training set and others may not, but all count the same towards the final prediction. However, we want this model to generalize well to data it hasn't seen before, so introducing some randomness into the model training should help us generalize to new data, since the new data might be pretty different than our training set. If we introduce some randomness along the way, we have a better chance of generalizing well.
 
 The same idea extends to the random forest model. A random forest model is a special case of a bagged tree, but we add another element of randomness by selecting a random subset of predictors to use at each split. Recall from the description of the regression tree, at each split we look for the optimal split. across all predictors. In the random forest model we limit ourselves to a random selection of predictors. In the same way that the bagged tree uses the bootstrap in an attempt to generalize well to unseen data, the random forest model does the same with the restricted selection of predictors at each step. The number of parameters to select at each step is a tuning parameter that we can use to select the optimal random forest model.
 
@@ -295,7 +294,7 @@ g = ggplot(data = rfMetrics, aes(x = mtry, y = mean))
 g + geom_line() + labs(x = "Number of Random Predictors", y = "Log-Loss")
 ```
 
-It looks like the model did the best with 7 predictors. Let's verify
+It looks like the model did the best with 5 predictors. Let's verify
 
 ```{r}
 

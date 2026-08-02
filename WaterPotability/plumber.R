@@ -11,7 +11,6 @@ library(plumber)
 library(tidyverse)
 library(ggplot2)
 library(tidymodels)
-library(gt)
 library(ggpubr)
 library(corrplot)
 library(caret)
@@ -69,42 +68,12 @@ cm = (conf_mat(results, truth = truth, estimate = estimate))
 
 
 
-
-
 #* @apiTitle Plumber Example API
 #* @apiDescription Plumber example description.
 
-#* Echo back the input
-#* @param msg The message to echo
-#* @get /echo
-function(msg = "") {
-    list(msg = paste0("The message is: '", msg, "'"))
-}
-
-#* Plot a histogram
-#* @serializer png
-#* @get /plot
-function() {
-    rand <- rnorm(100)
-    hist(rand)
-}
-
-#* Display the head of the potability data
-#* @get /head
-function(){
-  head(potabilityDf)
-}
-
-#* Return the sum of two numbers
-#* @param a The first number to add
-#* @param b The second number to add
-#* @post /sum
-function(a, b) {
-    as.numeric(a) + as.numeric(b)
-}
 
 #* Make a prediction based on the fit data
-#* @param pH
+#* @param ph
 #* @param hardness
 #* @param solids
 #* @param chloramines

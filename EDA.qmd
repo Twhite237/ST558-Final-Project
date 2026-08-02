@@ -71,7 +71,7 @@ potabilityDf = read.csv("water_potability.csv",
 head(potabilityDf)
 ```
 
-## Assiged Correct Variable Types:
+## Assigned Correct Variable Types:
 
 The *potability* variable should be a factor. All other variables are acceptable as numeric
 
